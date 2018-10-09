@@ -11,6 +11,7 @@ import (
 )
 
 var urlArray []string
+var igcMap = make(map[int]igc.Track)
 
 type UrlForm struct {
 	URL string `jason:"url"`
@@ -51,12 +52,15 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if getIndex(urlArray, Url.URL) == -1 {
+
 			urlArray = append(urlArray, Url.URL)
+			track, _ := igc.ParseLocation(Url.URL)
+			igcMap[len(urlArray)-1] = track
 		}
 
 		track, _ := igc.ParseLocation(Url.URL)
 
-		track.UniqueID = "besi"
+		//track.UniqueID = "besi"
 
 		uID := len(urlArray)
 
