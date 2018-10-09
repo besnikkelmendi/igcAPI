@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/marni/goigc"
@@ -12,9 +13,18 @@ import (
 
 var urlArray []string
 var igcMap = make(map[int]igc.Track)
+var finalID int
+var finalIDstr string
+var field []string
+var id string
 
 type UrlForm struct {
 	URL string `jason:"url"`
+}
+
+func isNumeric(s string) bool {
+	_, err := strconv.ParseFloat(s, 64)
+	return err == nil
 }
 
 func searchArray(x []string, y string) bool {
@@ -37,9 +47,30 @@ func getIndex(x []string, y string) int {
 	return -1
 }
 
+func trackLength(track igc.Track) float64 {
+
+	totalDistance := 0.0
+
+	for i := 0; i < len(track.Points)-1; i++ {
+		totalDistance += track.Points[i].Distance(track.Points[i+1])
+	}
+
+	return totalDistance
+}
+
+func getHandler(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method == "GET" {
+		w.Header().Set("Content-Type", "application/json")
+
+	}
+
+}
+
 func postHandler(w http.ResponseWriter, r *http.Request) {
 
 	//igcMap := make(map[int64]igc.Track)
+	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method == "POST" {
 
@@ -64,7 +95,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 
 		uID := len(urlArray)
 
-		track.UniqueID = strconv.Itoa(uID)
+		track.UniqueID = strconv.Itoa(uID - 1)
 
 		resp := "{\n\"id\": " + "\"" + track.UniqueID + "\"\n}"
 
@@ -74,23 +105,60 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method == "GET" {
 
-		w.Header().Set("Content-Type", "application/json")
+		id = strings.TrimPrefix(r.URL.Path, "/igcinfo/api/igc/")
+		if id != "" {
+			field = strings.Split(id, "/")
+			if field[1] != "" {
+				finalIDstr = field[0]
+				finalIDstr = strings.Replace(finalIDstr, "/", "", -1)
+				finalID0, err := strconv.Atoi(finalIDstr)
 
-		resp := "["
-		for i, _ := range urlArray {
+				if err != nil {
+					fmt.Fprint(w, "The id you wrote is not an integer")
+				} else {
+					finalID = finalID0
+				}
 
-			resp += strconv.Itoa(i + 1)
-			if i+1 == len(urlArray) {
-				break
+			} else {
+
+				id = strings.Replace(id, "/", "", -1)
+				finalID0, err := strconv.Atoi(id)
+				if err != nil {
+					fmt.Fprint(w, "The id you wrote is not an integer")
+				} else {
+					finalID = finalID0
+				}
+
 			}
-			resp += ","
-		}
-		resp += "]"
 
-		fmt.Fprint(w, resp)
+			resp := "{"
+			resp += "\"H_date\": " + "\"" + igcMap[finalID].Date.String() + "\","
+			resp += "\"pilot\": " + "\"" + igcMap[finalID].Pilot + "\","
+			resp += "\"glider\": " + "\"" + igcMap[finalID].GliderType + "\","
+			resp += "\"glider_id\": " + "\"" + igcMap[finalID].GliderID + "\","
+			resp += "\"track_lenght\": " + "\"" + fmt.Sprintf("%f", trackLength(igcMap[finalID])) + "\""
+			resp += "}"
+
+			fmt.Fprint(w, resp)
+		} else {
+
+			w.Header().Set("Content-Type", "application/json")
+
+			resp := "["
+			for i, _ := range urlArray {
+
+				resp += strconv.Itoa(i + 1)
+				if i+1 == len(urlArray) {
+					break
+				}
+				resp += ","
+			}
+			resp += "]"
+
+			fmt.Fprint(w, resp)
+		}
 
 	}
-
 }
 
 var start = time.Now()
