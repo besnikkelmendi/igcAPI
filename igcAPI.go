@@ -17,6 +17,7 @@ var finalID int
 var finalIDstr string
 var field []string
 var id string
+var rspField string
 
 type UrlForm struct {
 	URL string `jason:"url"`
@@ -112,11 +113,46 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 				finalIDstr = field[0]
 				finalIDstr = strings.Replace(finalIDstr, "/", "", -1)
 				finalID0, err := strconv.Atoi(finalIDstr)
-
 				if err != nil {
 					fmt.Fprint(w, "The id you wrote is not an integer")
 				} else {
 					finalID = finalID0
+					if finalID > len(igcMap)-1 {
+						fmt.Fprint(w, "The id you wrote does not exist in the system")
+					} else {
+
+						rspField = field[1]
+						rspField = strings.Replace(rspField, "/", "", -1)
+
+						switch rspField {
+						case "pilot":
+							fmt.Fprintf(w, "%s", igcMap[finalID].Pilot)
+							break
+						case "glider":
+							fmt.Fprintf(w, "%s", igcMap[finalID].GliderType)
+							break
+						case "glider_id":
+							fmt.Fprintf(w, "%s", igcMap[finalID].GliderID)
+							break
+						case "track_length":
+							fmt.Fprintf(w, "%f", trackLength(igcMap[finalID]))
+							break
+						case "H_date":
+							fmt.Fprintf(w, "%s", igcMap[finalID].Date.String())
+							break
+						default:
+							fmt.Fprint(w, "")
+						}
+						/*
+							resp := "{\n"
+							resp += "  \"H_date\": " + "\"" + igcMap[finalID].Date.String() + "\",\n"
+							resp += "  \"pilot\": " + "\"" + igcMap[finalID].Pilot + "\",\n"
+							resp += "  \"glider\": " + "\"" + igcMap[finalID].GliderType + "\",\n"
+							resp += "  \"glider_id\": " + "\"" + igcMap[finalID].GliderID + "\",\n"
+							resp += "  \"track_lenght\": " + "\"" + fmt.Sprintf("%f", trackLength(igcMap[finalID])) + "\"\n"
+							resp += "}"
+							fmt.Fprint(w, resp)*/
+					}
 				}
 
 			} else {
@@ -127,19 +163,22 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 					fmt.Fprint(w, "The id you wrote is not an integer")
 				} else {
 					finalID = finalID0
+					if finalID > len(igcMap)-1 {
+						fmt.Fprint(w, "The id you wrote does not exist in the system")
+					} else {
+						resp := "{\n"
+						resp += "  \"H_date\": " + "\"" + igcMap[finalID].Date.String() + "\",\n"
+						resp += "  \"pilot\": " + "\"" + igcMap[finalID].Pilot + "\",\n"
+						resp += "  \"glider\": " + "\"" + igcMap[finalID].GliderType + "\",\n"
+						resp += "  \"glider_id\": " + "\"" + igcMap[finalID].GliderID + "\",\n"
+						resp += "  \"track_lenght\": " + "\"" + fmt.Sprintf("%f", trackLength(igcMap[finalID])) + "\"\n"
+						resp += "}"
+						fmt.Fprint(w, resp)
+					}
 				}
 
 			}
 
-			resp := "{"
-			resp += "\"H_date\": " + "\"" + igcMap[finalID].Date.String() + "\","
-			resp += "\"pilot\": " + "\"" + igcMap[finalID].Pilot + "\","
-			resp += "\"glider\": " + "\"" + igcMap[finalID].GliderType + "\","
-			resp += "\"glider_id\": " + "\"" + igcMap[finalID].GliderID + "\","
-			resp += "\"track_lenght\": " + "\"" + fmt.Sprintf("%f", trackLength(igcMap[finalID])) + "\""
-			resp += "}"
-
-			fmt.Fprint(w, resp)
 		} else {
 
 			w.Header().Set("Content-Type", "application/json")
